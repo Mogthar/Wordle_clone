@@ -36,6 +36,11 @@ public class Letter : MonoBehaviour
         letterBackground.color = Color.grey;
     }
 
+    public void InvalidLetter()
+    {
+        letterBackground.color = Color.red;
+    }
+
     public void Reset() 
     {
         letterBackground.color = Color.white;

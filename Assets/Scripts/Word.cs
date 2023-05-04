@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 
 public class Word : MonoBehaviour
 {
@@ -60,5 +61,58 @@ public class Word : MonoBehaviour
         return word;
     }
 
+    public IEnumerator EvaluateWord(string guessWord, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        for(int i = 0; i < letters.Length; i++)
+        {
+            if(letters[i].GetLetter() == guessWord[i].ToString())
+            {
+                letters[i].CorrectLetter();
+            }
+            else if(guessWord.Any(character => character == letters[i].GetLetter().ToCharArray()[0]))
+            {
+                int counter = 0;
+                for(int j = 0; j < guessWord.Length; j++)
+                {
+                    if(guessWord[j] == letters[i].GetLetter().ToCharArray()[0] && guessWord[j] != letters[j].GetLetter().ToCharArray()[0])
+                    {
+                        counter++;
+                    }
+                }
+                if(counter > 0)
+                {
+                    letters[i].SemiCorrectLetter();
+                }
+                else
+                {
+                    letters[i].WrongLetter();
+                }
+            }
+            else
+            {
+                letters[i].WrongLetter();
+            }
+            yield return new WaitForSeconds(delay);
+        }
+    }
 
+    public IEnumerator WrongEntry(float delay)
+    {
+        foreach (Letter letter in letters)
+        {
+            letter.InvalidLetter();
+        }
+        yield return new WaitForSeconds(delay);
+        ResetWord();
+    }
+
+    private void ResetWord()
+    {
+        foreach (Letter letter in letters)
+        {
+            letter.Reset();
+        }
+        currentLetterIndex = 0;
+    }
 }

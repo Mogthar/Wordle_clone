@@ -2,12 +2,20 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Events;
 
 public class GameController : MonoBehaviour
 {
     [SerializeField] string guessWord;
     [SerializeField] Word[] words;
+
+    [SerializeField] float letterRevealDelay = 0.5f;
+    [SerializeField] float wrongEntryDelay = 2.0f;
     private int currentWordIndex;
+
+    [SerializeField] UnityEvent<int> onWordEntered = new UnityEvent<int>();
+
+    private UIController uiController;
 
     private void Awake() 
     {
@@ -15,6 +23,7 @@ public class GameController : MonoBehaviour
         {
             currentWordIndex = 0;
         }
+        uiController = FindObjectOfType<UIController>();
     }
 
     void Update()
@@ -30,23 +39,32 @@ public class GameController : MonoBehaviour
                 if(words[currentWordIndex].CheckWord()) // check if word is complete
                 {
                     string completeWord = words[currentWordIndex].GetCompleteWord(); // get full word
-                    string definition = DictAPI.RequestWordDefinition(completeWord); // request definition
-
-                    if(definition != null)
-                    {
-                        Debug.Log(definition);
-                        if(currentWordIndex < words.Length - 1)
-                        {
-                            currentWordIndex++;
-                        }
-                        else
-                        {
-                            Debug.Log("Game is over");
-                        }
+                    if(completeWord == guessWord)
+                    {   
+                        StartCoroutine(words[currentWordIndex].EvaluateWord(guessWord, letterRevealDelay));
+                        StartCoroutine(WinGame());
                     }
                     else
                     {
-                        Debug.Log("No definition found");
+                        bool isValidWord = DictAPI.CheckWordExistence(completeWord); // request definition
+
+                        if(isValidWord)
+                        {
+                            StartCoroutine(words[currentWordIndex].EvaluateWord(guessWord, letterRevealDelay));
+                            if(currentWordIndex < words.Length - 1)
+                            {
+                                onWordEntered.Invoke(currentWordIndex);
+                                currentWordIndex++;
+                            }
+                            else
+                            {
+                                StartCoroutine(GameOver());
+                            }
+                        }
+                        else
+                        {
+                            StartCoroutine(words[currentWordIndex].WrongEntry(wrongEntryDelay));
+                        }
                     }
                 }
             }
@@ -57,5 +75,15 @@ public class GameController : MonoBehaviour
         }
     }
 
+    private IEnumerator WinGame()
+    {
+        yield return new WaitForSeconds(6 * letterRevealDelay);
+        uiController.EnableWinWindow();
+    }
 
+    private IEnumerator GameOver()
+    {
+        yield return new WaitForSeconds(6 * letterRevealDelay);
+        uiController.EnableRestartWindow();
+    }
 }
